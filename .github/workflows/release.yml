@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   # 触发Core构建工作流

@@ -49,7 +49,6 @@ jobs:
           sudo apt-get clean
 
       - name: Download and extract native SDK
-        working-directory: ../../../
         run: |
           echo $PWD
           wget -q \

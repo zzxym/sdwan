@@ -20,7 +20,7 @@ if [[ $OS =~ ^ubuntu.*$ ]]; then
     fi
     if [[ $MUSL_TARGET =~ musl ]]; then
         mkdir -p ./musl_gcc
-        wget --inet4-only -c https://github.com/cross-tools/musl-cross/releases/download/20250520/${MUSL_TARGET}.tar.xz -P ./musl_gcc/
+        wget --inet4-only -c https://github.com/cross-tools/musl-cross/releases/download/20240520/${MUSL_TARGET}.tar.xz -P ./musl_gcc/
         tar xf ./musl_gcc/${MUSL_TARGET}.tar.xz -C ./musl_gcc/
         sudo ln -sf $(pwd)/musl_gcc/${MUSL_TARGET}/bin/*gcc /usr/bin/
         sudo ln -sf $(pwd)/musl_gcc/${MUSL_TARGET}/include/ /usr/include/musl-cross

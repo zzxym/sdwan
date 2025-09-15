@@ -151,7 +151,7 @@ jobs:
       - name: Download web artifact
         uses: actions/download-artifact@v4
         with:
-            name: sdwan-web-dashboard
+          name: sdwan-web-dashboard
           path: sdwan-web/frontend/dist/
 
       - uses: Swatinem/rust-cache@v2
