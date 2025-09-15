@@ -197,51 +197,47 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Core Artifact
-        uses: dawidd6/action-download-artifact@v11
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
-          run_id: ${{ needs.wait_for_builds.outputs.core_run_id }}
-          repo: ${{ github.repository }}
-          path: release_assets
+          name: sdwan-web-dashboard
+          path: release_assets/sdwan-web-dashboard
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.wait_for_builds.outputs.core_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download GUI Artifact
-        uses: dawidd6/action-download-artifact@v11
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
-          run_id: ${{ needs.wait_for_builds.outputs.gui_run_id }}
-          repo: ${{ github.repository }}
           path: release_assets_nozip
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.wait_for_builds.outputs.gui_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Mobile Artifact
-        uses: dawidd6/action-download-artifact@v11
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
-          run_id: ${{ needs.wait_for_builds.outputs.mobile_run_id }}
-          repo: ${{ github.repository }}
           path: release_assets_nozip
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.wait_for_builds.outputs.mobile_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Zip release assets
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          mkdir zipped_assets
+          mkdir -p zipped_assets
 
-          find release_assets_nozip -type f -exec mv {} zipped_assets \;
-          ls -l -R ./zipped_assets
+          # Process GUI and Mobile assets
+          find release_assets_nozip -type f -exec sh -c 'mv "$1" "zipped_assets/$(basename "$1")-${VERSION}"' _ {} \;
+          ls -la ./zipped_assets
 
+          # Process Core assets
           cd release_assets
-          ls -l -R ./
+          ls -la ./
           chmod -R 755 .
-          for x in `ls`; do
-            if [ "$x" = "sdwan-Magisk" ]; then
-              # for sdwan-Magisk, make sure files are in the root of the zip
-              cd $x;
-              zip -r ../../zipped_assets/$x-${VERSION}.zip .;
-              cd ..;
-            else
-              zip -r ../zipped_assets/$x-${VERSION}.zip $x;
-            fi
-          done
+          # Move all Core assets to zipped_assets with versioning
+          find . -type f -exec sh -c 'mv "$1" "../zipped_assets/$(basename "$1")-${VERSION}"' _ {} \;
+          cd ..
 
       - name: sdwan CLI
         uses: softprops/action-gh-release@v2
