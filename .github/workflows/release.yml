@@ -45,7 +45,10 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'core.yml',
-              ref: context.ref
+              ref: context.ref,
+              inputs: {
+                bypass_skip_check: true
+              }
             });
             // 获取刚刚触发的运行ID
             const runId = response.headers.location.split('/').pop();
@@ -74,7 +77,10 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'gui.yml',
-              ref: context.ref
+              ref: context.ref,
+              inputs: {
+                bypass_skip_check: true
+              }
             });
             const runId = response.headers.location.split('/').pop();
             console.log(`Triggered GUI workflow with run ID: ${runId}`);
@@ -102,7 +108,10 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'mobile.yml',
-              ref: context.ref
+              ref: context.ref,
+              inputs: {
+                bypass_skip_check: true
+              }
             });
             const runId = response.headers.location.split('/').pop();
             console.log(`Triggered Mobile workflow with run ID: ${runId}`);
