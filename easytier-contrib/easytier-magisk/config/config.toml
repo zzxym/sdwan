@@ -1,0 +1,37 @@
+instance_name = "default"
+dhcp = false
+#ipv4="本机ip"
+listeners = [
+    "tcp://0.0.0.0:10010",
+    "udp://0.0.0.0:10010",
+    "wg://0.0.0.0:10011",
+    "ws://0.0.0.0:10011/",
+    "wss://0.0.0.0:10012/",
+]
+mapped_listeners = []
+exit_nodes = []
+rpc_portal = "0.0.0.0:15888"
+
+[network_identity]
+network_name = "xlxx"
+network_secret = "Aa123456"
+
+[[peer]]
+#uri = "协议://中转ip:端口"
+
+[flags]
+default_protocol = "tcp"
+dev_name = ""
+enable_encryption = true
+enable_ipv6 = true
+mtu = 1380
+latency_first = true
+enable_exit_node = true
+no_tun = false
+use_smoltcp = true
+foreign_network_whitelist = "*"
+disable_p2p = false
+relay_all_peer_rpc = false
+disable_udp_hole_punching = false
+
+

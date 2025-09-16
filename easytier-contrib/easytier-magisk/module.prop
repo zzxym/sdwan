@@ -1,0 +1,7 @@
+id=easytier_magisk
+name=EasyTier_Magisk
+version=v2.4.3
+versionCode=1
+author=EasyTier
+description=easytier magisk module @EasyTier(https://github.com/zzxym/sdwan)
+updateJson=https://raw.githubusercontent.com/zzxym/sdwan/refs/heads/main/easytier-contrib/easytier-magisk/magisk_update.json

@@ -1,0 +1,253 @@
+name: SDwan Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for this release'
+        type: string
+        default: 'v25.9.10'
+        required: true
+      make_latest:
+        description: 'Mark this release as latest'
+        type: boolean
+        default: true
+        required: true
+  # 也可以添加对tags的自动触发
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # 触发Core构建工作流
+  trigger_core_build:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.trigger.outputs.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Trigger Core Workflow
+        id: trigger
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const response = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'core.yml',
+              ref: context.ref
+            });
+            // 获取刚刚触发的运行ID
+            const runId = response.headers.location.split('/').pop();
+            console.log(`Triggered Core workflow with run ID: ${runId}`);
+            return runId;
+
+  # 触发GUI构建工作流
+  trigger_gui_build:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.trigger.outputs.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Trigger GUI Workflow
+        id: trigger
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const response = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'gui.yml',
+              ref: context.ref
+            });
+            const runId = response.headers.location.split('/').pop();
+            console.log(`Triggered GUI workflow with run ID: ${runId}`);
+            return runId;
+
+  # 触发Mobile构建工作流
+  trigger_mobile_build:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.trigger.outputs.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Trigger Mobile Workflow
+        id: trigger
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const response = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'mobile.yml',
+              ref: context.ref
+            });
+            const runId = response.headers.location.split('/').pop();
+            console.log(`Triggered Mobile workflow with run ID: ${runId}`);
+            return runId;
+
+  # 等待所有构建工作流完成
+  wait_for_builds:
+    runs-on: ubuntu-latest
+    needs: [trigger_core_build, trigger_gui_build, trigger_mobile_build]
+    outputs:
+      core_run_id: ${{ needs.trigger_core_build.outputs.run_id }}
+      gui_run_id: ${{ needs.trigger_gui_build.outputs.run_id }}
+      mobile_run_id: ${{ needs.trigger_mobile_build.outputs.run_id }}
+    steps:
+      - name: Wait for Core Build to Complete
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runId = '${{ needs.trigger_core_build.outputs.run_id }}';
+            let status = 'in_progress';
+            
+            while (status === 'in_progress' || status === 'queued') {
+              await new Promise(resolve => setTimeout(resolve, 60000)); // 每分钟检查一次
+              const run = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId
+              });
+              status = run.data.status;
+              console.log(`Core build status: ${status}, conclusion: ${run.data.conclusion}`);
+            }
+            
+            if (run.data.conclusion !== 'success') {
+              throw new Error(`Core build failed with status: ${run.data.conclusion}`);
+            }
+
+      - name: Wait for GUI Build to Complete
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runId = '${{ needs.trigger_gui_build.outputs.run_id }}';
+            let status = 'in_progress';
+            
+            while (status === 'in_progress' || status === 'queued') {
+              await new Promise(resolve => setTimeout(resolve, 60000));
+              const run = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId
+              });
+              status = run.data.status;
+              console.log(`GUI build status: ${status}, conclusion: ${run.data.conclusion}`);
+            }
+            
+            if (run.data.conclusion !== 'success') {
+              throw new Error(`GUI build failed with status: ${run.data.conclusion}`);
+            }
+
+      - name: Wait for Mobile Build to Complete
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runId = '${{ needs.trigger_mobile_build.outputs.run_id }}';
+            let status = 'in_progress';
+            
+            while (status === 'in_progress' || status === 'queued') {
+              await new Promise(resolve => setTimeout(resolve, 60000));
+              const run = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId
+              });
+              status = run.data.status;
+              console.log(`Mobile build status: ${status}, conclusion: ${run.data.conclusion}`);
+            }
+            
+            if (run.data.conclusion !== 'success') {
+              throw new Error(`Mobile build failed with status: ${run.data.conclusion}`);
+            }
+
+  # 主发布作业
+  release:
+    if: contains('["zzxym"]', github.actor)
+    runs-on: ubuntu-latest
+    needs: wait_for_builds
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Core Artifact
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          run_id: ${{ needs.wait_for_builds.outputs.core_run_id }}
+          repo: ${{ github.repository }}
+          path: release_assets
+
+      - name: Download GUI Artifact
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          run_id: ${{ needs.wait_for_builds.outputs.gui_run_id }}
+          repo: ${{ github.repository }}
+          path: release_assets_nozip
+
+      - name: Download Mobile Artifact
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          run_id: ${{ needs.wait_for_builds.outputs.mobile_run_id }}
+          repo: ${{ github.repository }}
+          path: release_assets_nozip
+
+      - name: Zip release assets
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir zipped_assets
+
+          find release_assets_nozip -type f -exec mv {} zipped_assets \;
+          ls -l -R ./zipped_assets
+
+          cd release_assets
+          ls -l -R ./
+          chmod -R 755 .
+          for x in `ls`; do
+            if [ "$x" = "sdwan-Magisk" ]; then
+              # for easytier-Magisk, make sure files are in the root of the zip
+              cd $x;
+              zip -r ../../zipped_assets/$x-${VERSION}.zip .;
+              cd ..;
+            else
+              zip -r ../zipped_assets/$x-${VERSION}.zip $x;
+            fi
+          done
+
+      - name: SDwan CLI
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SDwan CLI
+          draft: true
+          files: |
+            ./zipped_assets/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ inputs.version }}

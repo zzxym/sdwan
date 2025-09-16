@@ -1,0 +1,13 @@
+[package]
+name = "SDwanGUI"
+id = "com.zzxym.sdwan"
+
+[app]
+name = "SDwanGUI"
+identifier = "com.zzxym.sdwan"
+binary_name = "app_lib"
+template = "wry"
+
+[ios]
+minimum_deployment_target = "13.0"
+use_frameworks = true
