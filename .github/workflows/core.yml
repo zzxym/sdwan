@@ -8,6 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUST_LOG: info
 
 defaults:
   run:
@@ -151,7 +153,7 @@ jobs:
       - name: Download web artifact
         uses: actions/download-artifact@v4
         with:
-            name: sdwan-web-dashboard
+          name: sdwan-web-dashboard
           path: easytier-web/frontend/dist/
 
       - uses: Swatinem/rust-cache@v2
@@ -161,6 +163,18 @@ jobs:
           # default: "v0-rust"
           prefix-key: ""
 
+
+      - name: Debug environment
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Environment variables:"
+          env
+          echo "Directory contents:"
+          ls -la
+          echo "Rust version: $(rustc --version)"
+          echo "Cargo version: $(cargo --version)"
+          echo "Target: $TARGET"
+          echo "OS: $OS"
 
       - name: Setup protoc
         uses: arduino/setup-protoc@v3
@@ -186,7 +200,7 @@ jobs:
           fi
 
           if [[ $OS =~ ^ubuntu.*$ && $TARGET =~ ^mips.*$ ]]; then
-            cargo +nightly build -r --target $TARGET -Z build-std=std,panic_abort --package=sdwan --features=jemalloc
+            cargo +nightly build -r --target $TARGET -Z build-std=std,panic_abort --package=sdwan --features=jemalloc --verbose
           else
             if [[ $OS =~ ^windows.*$ ]]; then
               SUFFIX=.exe
@@ -196,9 +210,9 @@ jobs:
             else
               CORE_FEATURES="--features=jemalloc"
             fi
-            cargo build --release --target $TARGET --package=SDwan-web --features=embed
+            cargo build --release --target $TARGET --package=SDwan-web --features=embed --verbose
             mv ./target/$TARGET/release/SDwan-web"$SUFFIX" ./target/$TARGET/release/SDwan-web-embed"$SUFFIX"
-            cargo build --release --target $TARGET $CORE_FEATURES
+            cargo build --release --target $TARGET $CORE_FEATURES --verbose
           fi
 
       # Copied and slightly modified from @lmq8267 (https://github.com/lmq8267)
